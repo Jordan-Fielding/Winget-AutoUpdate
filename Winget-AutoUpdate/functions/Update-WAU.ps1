@@ -15,7 +15,7 @@ function Update-WAU {
     try {
 
         #Force to create a zip file
-        $ZipFile = "$WorkingDir\WAU_update.zip"
+        $ZipFile = "$env:TEMP\WAU_update.zip"
         New-Item $ZipFile -ItemType File -Force | Out-Null
 
         #Download the zip
@@ -24,13 +24,14 @@ function Update-WAU {
 
         #Extract Zip File
         Write-ToLog "Unzipping the WAU Update package" "Cyan"
-        $location = "$WorkingDir\WAU_update"
+        $location = "$env:TEMP\WAU_update"
         Expand-Archive -Path $ZipFile -DestinationPath $location -Force
         Get-ChildItem -Path $location -Recurse | Unblock-File
 
         #Update scritps
         Write-ToLog "Updating WAU..." "Yellow"
         $TempPath = (Resolve-Path "$location\Winget-AutoUpdate\")[0].Path
+
         $ServiceUI = Test-Path "$WorkingDir\ServiceUI.exe"
         if ($TempPath -and $ServiceUI) {
             #Do not copy ServiceUI if already existing, causing error if in use.
