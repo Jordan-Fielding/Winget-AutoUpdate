@@ -28,40 +28,12 @@ function Update-WAU {
         Expand-Archive -Path $ZipFile -DestinationPath $location -Force
         Get-ChildItem -Path $location -Recurse | Unblock-File
 
-        #Update scritps
+        #Run installer for update
         Write-ToLog "Updating WAU..." "Yellow"
-        $TempPath = (Resolve-Path "$location\Winget-AutoUpdate\")[0].Path
-
-        $ServiceUI = Test-Path "$WorkingDir\ServiceUI.exe"
-        if ($TempPath -and $ServiceUI) {
-            #Do not copy ServiceUI if already existing, causing error if in use.
-            Copy-Item -Path "$TempPath\*" -Destination "$WorkingDir\" -Exclude ("icons", "ServiceUI.exe") -Recurse -Force
-        }
-        elseif ($TempPath) {
-            Copy-Item -Path "$TempPath\*" -Destination "$WorkingDir\" -Exclude "icons" -Recurse -Force
-        }
-
-        #Remove update zip file and update temp folder
-        Write-ToLog "Done. Cleaning temp files..." "Cyan"
-        Remove-Item -Path $ZipFile -Force -ErrorAction SilentlyContinue
-        Remove-Item -Path $location -Recurse -Force -ErrorAction SilentlyContinue
-
-        #Set new version to registry
-        New-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Winget-AutoUpdate" -Name "DisplayVersion" -Value $WAUAvailableVersion -Force | Out-Null
+        Start-Process powershell -ArgumentList "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$location\winget-upgrade.ps1`" -Update"
 
         #Set Post Update actions to 1
         New-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Winget-AutoUpdate" -Name "WAU_PostUpdateActions" -Value 1 -Force | Out-Null
-
-        #Send success Notif
-        Write-ToLog "WAU Update completed." "Green"
-        $Title = $NotifLocale.local.outputs.output[3].title -f "Winget-AutoUpdate"
-        $Message = $NotifLocale.local.outputs.output[3].message -f $WAUAvailableVersion
-        $MessageType = "success"
-        Start-NotifTask -Title $Title -Message $Message -MessageType $MessageType -Button1Action $OnClickAction -Button1Text $Button1Text
-
-        #Rerun with newer version
-        Write-ToLog "Re-run WAU"
-        Start-Process powershell -ArgumentList "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -Command `"$WorkingDir\winget-upgrade.ps1`""
 
         exit
 
