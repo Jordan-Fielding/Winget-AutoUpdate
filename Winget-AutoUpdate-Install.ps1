@@ -337,7 +337,6 @@ function Install-WingetAutoUpdate {
             New-Item $regPath -Force | Out-Null
             New-ItemProperty $regPath -Name DisplayName -Value "Winget-AutoUpdate (WAU)" -Force | Out-Null
             New-ItemProperty $regPath -Name DisplayIcon -Value "C:\Windows\System32\shell32.dll,-16739" -Force | Out-Null
-            New-ItemProperty $regPath -Name DisplayVersion -Value $WAUVersion -Force | Out-Null
             New-ItemProperty $regPath -Name InstallLocation -Value $WAUinstallPath -Force | Out-Null
             New-ItemProperty $regPath -Name UninstallString -Value "powershell.exe -noprofile -executionpolicy bypass -file `"$WAUinstallPath\WAU-Uninstall.ps1`"" -Force | Out-Null
             New-ItemProperty $regPath -Name QuietUninstallString -Value "powershell.exe -noprofile -executionpolicy bypass -file `"$WAUinstallPath\WAU-Uninstall.ps1`"" -Force | Out-Null
@@ -413,6 +412,9 @@ function Install-WingetAutoUpdate {
             Write-ToLog "-> WAU Update succeeded!" "Green"
             Start-sleep 1
         }
+
+        #Set installed version
+        New-ItemProperty $regPath -Name DisplayVersion -Value $WAUVersion -Force | Out-Null
 
         #Run Winget ?
         Start-WingetAutoUpdate
