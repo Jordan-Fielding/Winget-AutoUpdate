@@ -3,7 +3,8 @@
 # Winget-AutoUpdate (WAU)
 
 [![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/Romanitho/Winget-AutoUpdate?label=Latest%20Stable%20Release&style=flat-square)](https://github.com/Romanitho/Winget-AutoUpdate/releases/latest)
-[![GitHub release (by tag)](https://img.shields.io/github/downloads/Romanitho/Winget-AutoUpdate/latest/total?label=Downloads&style=flat-square)](https://github.com/Romanitho/Winget-AutoUpdate/releases/latest)
+[![GitHub release (by tag)](https://img.shields.io/github/downloads/Romanitho/Winget-AutoUpdate/latest/WAU.zip?label=Downloads&style=flat-square)](https://github.com/Romanitho/Winget-AutoUpdate/releases/latest)
+<!-- [![GitHub release (by tag)](https://img.shields.io/github/downloads/Romanitho/Winget-AutoUpdate/latest/WAU_InstallCounter?label=Installations&style=flat-square)](https://github.com/Romanitho/Winget-AutoUpdate/releases/latest) -->
 
 </div>
 
@@ -177,11 +178,13 @@ This script executes **if the network is active/any version of Winget is install
 If **ExitCode** is **1** from `_WAU-mods.ps1` then **Re-run WAU**.
 ## Custom scripts (Mods feature for Apps)
 From version 1.8.0, the Mods feature allows you to run additional scripts when upgrading or installing an app.
-Just put the scripts in question with the **AppID** followed by the `-preinstall`, `-upgrade`, `-install` or `-installed` suffix in the **mods** folder.
+Just put the scripts in question with the **AppID** followed by the `-preinstall`, `-upgrade`, `-install`, `-installed` or `-notinstalled` suffix in the **mods** folder.
 
->- Runs before upgrade/install: `AppID-preinstall.ps1`<br>
->- Runs during upgrade/install (before install check): `AppID-upgrade.ps1`/`AppID-install.ps1`<br>
+>- Runs before upgrade/install: `AppID-preinstall.ps1`
+>- Runs during upgrade/install (before install check): `AppID-upgrade.ps1`/`AppID-install.ps1`
 >- Runs after upgrade/install has been confirmed: `AppID-installed.ps1`
+>- Runs after a failed upgrade/install: `AppID-notinstalled.ps1`
+>- Runs after a failed upgrade/install: `_WAU-notinstalled.ps1` (any individual `AppID-notinstalled.ps1` overrides this global one)
 
 The **-install** mod will be used for upgrades too if **-upgrade** doesn't exist (**WAU** first tries `& $Winget upgrade --id` and if the app isn't detected after that `& $Winget install --id` is tried).<br>
 `AppID-install.ps1` is recommended because it's used in **both** scenarios.
@@ -227,7 +230,8 @@ Feel free to give us any suggestions or optimizations in code and support us by 
 #### WAU - GitHub
 
 [![GitHub release (release name instead of tag name)](https://img.shields.io/github/v/release/Romanitho/Winget-AutoUpdate?display_name=release&include_prereleases&label=Latest%20Release&style=flat-square)](https://github.com/Romanitho/Winget-AutoUpdate/releases/)
-[![GitHub release (latest by SemVer including pre-releases)](https://img.shields.io/github/downloads-pre/Romanitho/Winget-AutoUpdate/latest/total?label=Downloads&style=flat-square)](https://github.com/Romanitho/Winget-AutoUpdate/releases/)<br>
+[![GitHub release (latest by SemVer including pre-releases)](https://img.shields.io/github/downloads-pre/Romanitho/Winget-AutoUpdate/latest/WAU.zip?label=Downloads&style=flat-square)](https://github.com/Romanitho/Winget-AutoUpdate/releases/)
+[![GitHub release (latest by SemVer including pre-releases)](https://img.shields.io/github/downloads-pre/Romanitho/Winget-AutoUpdate/latest/WAU_InstallCounter?label=Installations&style=flat-square)](https://github.com/Romanitho/Winget-AutoUpdate/releases/)<br>
 [![GitHub all releases](https://img.shields.io/github/downloads/Romanitho/Winget-AutoUpdate/total?label=Total%20downloads&style=flat-square)](https://somsubhra.github.io/github-release-stats/?username=Romanitho&repository=Winget-AutoUpdate&page=1&per_page=1000)
 
 </div>

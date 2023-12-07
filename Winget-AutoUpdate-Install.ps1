@@ -123,74 +123,13 @@ param(
 <# FUNCTIONS #>
 
 #Include external Functions
+. "$PSScriptRoot\Winget-AutoUpdate\functions\Install-Prerequisites.ps1"
 . "$PSScriptRoot\Winget-AutoUpdate\functions\Invoke-DirProtect.ps1"
 . "$PSScriptRoot\Winget-AutoUpdate\functions\Update-WinGet.ps1"
 . "$PSScriptRoot\Winget-AutoUpdate\functions\Update-StoreApps.ps1"
 . "$PSScriptRoot\Winget-AutoUpdate\functions\Add-Shortcut.ps1"
 . "$PSScriptRoot\Winget-AutoUpdate\functions\Write-ToLog.ps1"
 
-function Install-Prerequisites {
-
-    Write-ToLog "Checking prerequisites..." "Yellow"
-
-    #Check if Visual C++ 2019 or 2022 installed
-    $Visual2019 = "Microsoft Visual C++ 2015-2019 Redistributable*"
-    $Visual2022 = "Microsoft Visual C++ 2015-2022 Redistributable*"
-    $path = Get-Item HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*, HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\* | Where-Object { $_.GetValue("DisplayName") -like $Visual2019 -or $_.GetValue("DisplayName") -like $Visual2022 }
-
-    #If not installed, ask for installation
-    if (!($path)) {
-        #If -silent option, force installation
-        if ($Silent) {
-            $InstallApp = $True
-        }
-        else {
-            #Ask for installation
-            $MsgBoxTitle = "Winget Prerequisites"
-            $MsgBoxContent = "Microsoft Visual C++ 2015-2022 is required. Would you like to install it?"
-            $MsgBoxTimeOut = 60
-            $MsgBoxReturn = (New-Object -ComObject "Wscript.Shell").Popup($MsgBoxContent, $MsgBoxTimeOut, $MsgBoxTitle, 4 + 32)
-            if ($MsgBoxReturn -ne 7) {
-                $InstallApp = $True
-            }
-        }
-        #Install if approved
-        if ($InstallApp) {
-            try {
-                #Get proc architecture
-                if ($env:PROCESSOR_ARCHITECTURE -eq "ARM64") {
-                    $OSArch = "arm64"
-                }
-                elseif ($env:PROCESSOR_ARCHITECTURE -like "*64*") {
-                    $OSArch = "x64"
-                }
-                else {
-                    $OSArch = "x86"
-                }
-
-                $SourceURL = "https://aka.ms/vs/17/release/VC_redist.$OSArch.exe"
-                $Installer = $WAUinstallPath + "\VC_redist.$OSArch.exe"
-                Write-ToLog "-> Downloading VC_redist.$OSArch.exe..."
-                Invoke-WebRequest $SourceURL -UseBasicParsing -OutFile (New-Item -Path $Installer -Force)
-                Write-ToLog "-> Installing VC_redist.$OSArch.exe..."
-                Start-Process -FilePath $Installer -Args "/passive /norestart" -Wait
-                Start-Sleep 1
-                Remove-Item $Installer -ErrorAction Ignore
-                Write-ToLog "-> MS Visual C++ 2015-2022 installed successfully`n" "Cyan"
-            }
-            catch {
-                Write-ToLog "-> MS Visual C++ 2015-2022 installation failed.`n" "Red"
-                Start-Sleep 3
-            }
-        }
-        else {
-            Write-ToLog "-> MS Visual C++ 2015-2022 will not be installed.`n" "Magenta"
-        }
-    }
-    else {
-        Write-ToLog "-> Prerequisites checked. OK`n" "Green"
-    }
-}
 
 function Install-WingetAutoUpdate {
 
@@ -269,6 +208,7 @@ function Install-WingetAutoUpdate {
             Get-ScheduledTask -TaskName "Winget-AutoUpdate-UserContext" -ErrorAction SilentlyContinue | Unregister-ScheduledTask -Confirm:$False
 
             # Settings for the scheduled task for Updates (System)
+            Write-ToLog "-> Installing WAU scheduled tasks"
             $taskAction = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -ExecutionPolicy Bypass -File `"$($WAUinstallPath)\winget-upgrade.ps1`""
             $taskTriggers = @()
             if ($UpdatesAtLogon) {
@@ -334,9 +274,11 @@ function Install-WingetAutoUpdate {
             $task.SetSecurityDescriptor($sec, 0)
 
             # Configure Reg Key
+            Write-ToLog "-> Setting Registry config"
             New-Item $regPath -Force | Out-Null
             New-ItemProperty $regPath -Name DisplayName -Value "Winget-AutoUpdate (WAU)" -Force | Out-Null
             New-ItemProperty $regPath -Name DisplayIcon -Value "C:\Windows\System32\shell32.dll,-16739" -Force | Out-Null
+            New-ItemProperty $regPath -Name DisplayVersion -Value $WAUVersion -Force | Out-Null
             New-ItemProperty $regPath -Name InstallLocation -Value $WAUinstallPath -Force | Out-Null
             New-ItemProperty $regPath -Name UninstallString -Value "powershell.exe -noprofile -executionpolicy bypass -file `"$WAUinstallPath\WAU-Uninstall.ps1`"" -Force | Out-Null
             New-ItemProperty $regPath -Name QuietUninstallString -Value "powershell.exe -noprofile -executionpolicy bypass -file `"$WAUinstallPath\WAU-Uninstall.ps1`"" -Force | Out-Null
@@ -390,6 +332,24 @@ function Install-WingetAutoUpdate {
                 New-ItemProperty $regPath -Name WAU_StartMenuShortcut -Value 1 -PropertyType DWord -Force | Out-Null
             }
 
+            #Security check
+            Write-ToLog "-> Checking Mods Directory:"
+            $Protected = Invoke-DirProtect "$WAUinstallPath\mods"
+            if ($Protected -eq $True) {
+                Write-ToLog "   The mods directory is secured!" "Cyan"
+            }
+            else {
+                Write-ToLog "   Error: The mods directory couldn't be verified as secured!" "Red"
+            }
+            Write-ToLog "-> Checking Functions Directory:"
+            $Protected = Invoke-DirProtect "$WAUinstallPath\Functions"
+            if ($Protected -eq $True) {
+                Write-ToLog "   The Functions directory is secured!" "Cyan"
+            }
+            else {
+                Write-ToLog "   Error: The Functions directory couldn't be verified as secured!" "Red"
+            }
+
             #Create Shortcuts
             if ($StartMenuShortcut) {
                 if (!(Test-Path "${env:ProgramData}\Microsoft\Windows\Start Menu\Programs\Winget-AutoUpdate (WAU)")) {
@@ -402,6 +362,14 @@ function Install-WingetAutoUpdate {
 
             if ($DesktopShortcut) {
                 Add-Shortcut "wscript.exe" "${env:Public}\Desktop\WAU - Check for updated Apps.lnk" "`"$($WAUinstallPath)\Invisible.vbs`" `"powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"`"`"$($WAUinstallPath)\user-run.ps1`"`"" "${env:SystemRoot}\System32\shell32.dll,-16739" "Manual start of Winget-AutoUpdate (WAU)..."
+            }
+
+            #Add 1 to counter file
+            try {
+                Invoke-RestMethod -Uri "https://github.com/Romanitho/Winget-AutoUpdate/releases/download/v$($WAUVersion)/WAU_InstallCounter" | Out-Null
+            }
+            catch {
+                Write-ToLog "-> Not able to report installation." "Yellow"
             }
 
             Write-ToLog "-> WAU Installation succeeded!`n" "Green"
@@ -572,12 +540,14 @@ if ($Update) {
     }
 }
 
+#Define WAU registry key
+$Script:regPath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Winget-AutoUpdate"
+
 if (!$Uninstall) {
     Write-ToLog "  INSTALLING WAU" -LogColor "Cyan" -IsHeader
     Install-Prerequisites
     $UpdateWinget = Update-Winget
     if ($UpdateWinget -ne "fail") {
-        Write-Host "`r" #Extra Line in console only
         Install-WingetAutoUpdate
     }
     else {
