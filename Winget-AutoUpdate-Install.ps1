@@ -540,9 +540,6 @@ if ($Update) {
     }
 }
 
-#Define WAU registry key
-$Script:regPath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Winget-AutoUpdate"
-
 if (!$Uninstall) {
     Write-ToLog "  INSTALLING WAU" -LogColor "Cyan" -IsHeader
     Install-Prerequisites
