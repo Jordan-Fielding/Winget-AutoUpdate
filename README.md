@@ -99,6 +99,7 @@ Get Black/White List from external Path (**URL/UNC/Local/GPO**) - download/copy 
 ...if the external Path is an **URL** and the web host doesn't respond with a date/time header for the file (i.e **GitHub**) then the file is always downloaded!
 
 If `-ListPath` is set to **GPO** the Black/White List can be managed from within the GPO itself under **Application GPO Blacklist**/**Application GPO Whitelist**. Thanks to [Weatherlights](https://github.com/Weatherlights) in [#256 (reply in thread)](https://github.com/Romanitho/Winget-AutoUpdate/discussions/256#discussioncomment-4710599)!
+If you are using a GPO Blacklist and you do not have ListPath set to GPO, then WAU will fall back on the excluded_apps.txt instead of using the ADMX.
 
 **-ModsPath**<br>
 Get Mods from external Path (**URL/UNC/Local/AzureBlob**) - download/copy to `mods` in Winget-AutoUpdate installation location if external mods are newer.<br>
